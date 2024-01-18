@@ -2,6 +2,12 @@
 
 #include <stdint.h>
 
+static const uint8_t RELAY_COUNT = 4;
+
+void buttons_press_listener();
+void master_button_press_listener();
+void master_button_check_for_unlatch();
+
 void set_relay_state(uint8_t relay, uint8_t state);
-void set_relays_states(uint8_t states);
+void set_relays_states(uint8_t states[]);
 void set_interrupts_state(uint8_t state);

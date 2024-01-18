@@ -31,3 +31,5 @@ uint8_t API_OPTA_PAYLOAD_LEN   = sizeof(APIOptaPayload);
 uint8_t API_SERVER_PAYLOAD_LEN = sizeof(APIServerPayload);
 
 static const uint32_t API_TIMESTAMP_MAX_DIFF = 5;
+
+void api_make_opta_request(APIOptaRequestType request_type);
