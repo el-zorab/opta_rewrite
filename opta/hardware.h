@@ -4,6 +4,11 @@
 
 static const uint8_t RELAY_COUNT = 4;
 
+void attach_button_interrupts();
+void detach_button_interrupts();
+
+void attach_master_button_interrupt();
+
 void buttons_press_listener();
 void master_button_press_listener();
 void master_button_check_for_unlatch();

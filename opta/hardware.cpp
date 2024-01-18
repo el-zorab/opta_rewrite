@@ -136,6 +136,10 @@ void detach_button_interrupts() {
 //   digitalWrite(LEDR, HIGH);
 }
 
+void attach_master_button_interrupt() {
+  attachInterrupt(digitalPinToInterrupt(BTN_USER), master_button_isr, RISING);
+}
+
 static void button0_isr() {
   button_pressed[0] = 1;
 }
