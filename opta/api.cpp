@@ -4,6 +4,7 @@
 #include <time.h>
 #include "api.h"
 #include "encryption.h"
+#include "hardware.h"
 #include "util.h"
 
 void api_print_opta_payload(APIOptaPayload *payload) {
@@ -61,7 +62,7 @@ void api_make_opta_request(APIOptaRequestType request_type) {
 
     api_send_payload_http(encrypted_payload, encrypted_payload_len);
 
-    if (1) api_sent_reqs_counter++;
+    api_sent_reqs_counter++;
 }
 
 
@@ -113,11 +114,31 @@ void api_handle_server_request(char *encrypted_str) {
     }
 
     if (server_payload_len != API_SERVER_PAYLOAD_LEN) { // should never be true
-        printf("Something (?) has gone wrong\n");
+        printf("Server payload discarded (invalid decrypted payload length)\n");
         return;
     }
 
     api_print_server_payload(&server_payload);
+
+    // todo
+    if (server_payload.counter < api_received_reqs_counter) {
+        printf("Server payload discarded (invalid counter)\n");
+        return;
+    }
+
+    if (get_unix_timestamp_dummy() - server_payload.timestamp > API_TIMESTAMP_MAX_DIFF) {
+        printf("Server payload discarded (invalid timestamp)\n");
+        return;
+    }
+
+    if (server_payload.request == API_SERVER_REQ_UPDATE_RELAYS) {
+        set_relays_states(server_payload.extra);
+    } else if (server_payload.request == API_SERVER_REQ_UPDATE_INTERRUPTS_STATE) {
+        set_interrupts_state(server_payload.extra);
+    } else {
+        printf("Server payload discarded (invalid request type)\n");
+        return;
+    }
 
     api_received_reqs_counter++;
 }
