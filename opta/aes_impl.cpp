@@ -1,6 +1,4 @@
-#include "stdio.h"
-
-#include "lib/aes.h"
+#include "aes.h"
 #include "aes_impl.h"
 #include "aes_key.h"
 

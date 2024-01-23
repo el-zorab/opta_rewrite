@@ -1,8 +1,11 @@
 #include <EthernetUdp.h>
+#include <stdint.h>
 #include "ntp.h"
 
-const uint8_t  NTP_PACKET_SIZE   = 48;
 const uint32_t NTP_MAX_WAIT_TIME = 5000;
+const uint8_t  NTP_PACKET_SIZE   = 48;
+const char     NTP_SERVER[] = "time.nist.gov";
+
 const uint32_t UDP_PORT = 8888;
 
 EthernetUDP Udp;

@@ -1,7 +1,7 @@
-#include "lib/hmac_sha256.h"
-#include "lib/sha256.h"
 #include "hmac_impl.h"
 #include "hmac_key.h"
+#include "hmac_sha256.h"
+#include "sha256.h"
 
 static const uint8_t HMAC_KEY_LEN = 64;
 

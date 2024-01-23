@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "lib/sha256.h"
+#include "sha256.h"
 
 static const uint16_t IV_LEN = 16;
 static const uint16_t AES_MAX_LEN = 32;

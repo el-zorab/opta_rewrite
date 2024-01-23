@@ -18,8 +18,9 @@ struct APIServerPayload { // Server sends payload to Opta
 } __attribute__((packed));
 
 enum APIOptaRequestType {
-    API_OPTA_REQ_UPDATE_RELAYS           = 0,
-    API_OPTA_REQ_UPDATE_INTERRUPTS_STATE = 1
+    API_OPTA_REQ_UPDATE_RELAYS             = 0,
+    API_OPTA_REQ_UPDATE_RELAYS_BY_USER_BTN = 1,
+    API_OPTA_REQ_UPDATE_INTERRUPTS_STATE   = 2
 };
 
 enum APIServerRequestType {
@@ -27,9 +28,10 @@ enum APIServerRequestType {
     API_SERVER_REQ_UPDATE_INTERRUPTS_STATE = 1
 };
 
+static const char* API_HEADER_NAME = "Payload";
+
 uint8_t API_OPTA_PAYLOAD_LEN   = sizeof(APIOptaPayload);
 uint8_t API_SERVER_PAYLOAD_LEN = sizeof(APIServerPayload);
 
-static const uint32_t API_TIMESTAMP_MAX_DIFF = 5;
-
 void api_make_opta_request(APIOptaRequestType request_type);
+uint16_t api_validate_server_payload(char *encrypted);
