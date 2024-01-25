@@ -17,7 +17,8 @@ const io = new Server(server);
 // API request types
 const APIReceivedType = {
   RELAY_STATES_CHANGED: 0,
-  ENABLE_BUTTON_INTERRUPTS: 1
+  RELAY_STATES_CHANGED_BY_USER_BTN: 1,
+  ENABLE_BUTTON_INTERRUPTS: 2
 };
 
 const APISentType = {
