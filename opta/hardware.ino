@@ -6,11 +6,13 @@ const int LEDS[]   = { LED_D0, LED_D1, LED_D2, LED_D3 };
 
 static const uint8_t BUTTON_COUNT = 3;
 
-static const unsigned long BUTTON_DEBOUNCE_DELAY = 150;
+static const unsigned long BUTTON_DEBOUNCE_DELAY = 300;
 static const unsigned long RELAY_UNLATCH_TIME    = 1500;
 
 const uint8_t RELAY_A_STATE_FROM_COUNTER[] = {0, 1, 1, 0};
 const uint8_t RELAY_B_STATE_FROM_COUNTER[] = {0, 0, 1, 1};
+
+const uint8_t COUNTER_FROM_STATES[] = {0, 3, 1, 2};
 
 static uint8_t relay_states[RELAY_COUNT];
 static uint8_t relay_latched_states[RELAY_COUNT];
@@ -47,11 +49,11 @@ void switches_press_listener() {
     if (millis() - button_last_debounce[i] < BUTTON_DEBOUNCE_DELAY) continue;
     button_last_debounce[i] = millis();
 
-    uint8_t counter = relay_states[2 * i] << 1 | relay_states[2 * i + 1];
-    counter = (counter + 1) & 3;
+    uint8_t states = relay_states[2 * i] << 1 | relay_states[2 * i + 1];
+    uint8_t counter = (COUNTER_FROM_STATES[states] + 1) & 3;
 
-    set_relay_state(2 * i     , RELAY_A_STATE_FROM_COUNTER[counter]);
-    set_relay_state(2 * i  + 1, RELAY_B_STATE_FROM_COUNTER[counter]);
+    set_relay_state(2 * i    , RELAY_A_STATE_FROM_COUNTER[counter]);
+    set_relay_state(2 * i + 1, RELAY_B_STATE_FROM_COUNTER[counter]);
 
     api_make_opta_request(API_OPTA_REQ_UPDATE_RELAYS);
   }

@@ -1,4 +1,3 @@
 #pragma once
 
-void eth_server_init();
-void eth_server_loop();
+void eth_server_loop(EthernetServer *eth_server);

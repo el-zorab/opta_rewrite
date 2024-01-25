@@ -5,19 +5,14 @@
 #include "eth_server.h"
 
 static uint16_t ETH_SERVER_MAX_REQ_LEN = 512;
-static uint16_t ETH_SERVER_PORT = 8088;
 
-static EthernetServer eth_server(ETH_SERVER_PORT);
-
-void eth_server_init() {
-    eth_server.begin();
-}
-
-void eth_server_loop() {
-    EthernetClient client = eth_server.available();
+void eth_server_loop(EthernetServer *eth_server) {
+    EthernetClient client = eth_server->available();
     if (!client) {
         return;
     }
+
+    Serial.println("available");
 
     char request[ETH_SERVER_MAX_REQ_LEN];
     uint16_t request_len = 0;
@@ -49,9 +44,8 @@ void eth_server_loop() {
                     && payload_line[header_name_len + 1] == ' ') {
                     char *payload_str = payload_line + header_name_len + 2;
                     Serial.print("Validating received payload: ");
-                    Serial.print(payload_str);
-                    Serial.println();
-                    api_validate_server_payload(payload_str);
+                    Serial.println(payload_str);
+                    api_handle_server_request(payload_str);
                 } else {
                     client.println("HTTP/1.1 401 Unauthorized");
                     client.println("Content-Type: text/html");

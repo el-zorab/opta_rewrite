@@ -34,4 +34,4 @@ uint8_t API_OPTA_PAYLOAD_LEN   = sizeof(APIOptaPayload);
 uint8_t API_SERVER_PAYLOAD_LEN = sizeof(APIServerPayload);
 
 void api_make_opta_request(APIOptaRequestType request_type);
-uint16_t api_validate_server_payload(char *encrypted);
+void api_handle_server_request(char *encrypted_str);

@@ -7,19 +7,14 @@
 #include "rtc.h"
 #include "util.h"
 
-static const char* API_SERVER_IP   = "192.168.11.214";
+static const char* API_SERVER_IP   = "192.168.11.108";
 static const char* API_SERVER_URL  = "/api";
 static uint32_t    API_SERVER_PORT = 80;
 
 static const uint32_t API_TIMESTAMP_MAX_DIFF = 5;
 
-// uint8_t get_opta_id_dummy() { return 2; }
-// uint32_t get_unix_timestamp_dummy() { return 17331401; }
-// uint8_t get_relay_states_dummy() { return 0b1011; }
-// uint8_t get_interrupts_state_dummy() { return 1; }
-
-uint32_t api_received_reqs_counter = 412;
-uint32_t api_sent_reqs_counter     = 621;
+uint32_t api_received_reqs_counter = 0;
+uint32_t api_sent_reqs_counter     = 0;
 
 void api_send_payload_http(uint8_t *encrypted_payload, uint16_t encrypted_payload_len) {
     char http_payload[ENCRYPTED_PAYLOAD_MAX_STR_LEN];
@@ -49,6 +44,7 @@ void api_create_opta_payload(struct APIOptaPayload *payload, enum APIOptaRequest
     payload->timestamp = rtc_get_unix_timestamp();
     payload->opta_id = get_opta_id();
     payload->request = request;
+
     if (request == API_OPTA_REQ_UPDATE_RELAYS) {
         payload->extra = 0;
         for (uint8_t i = 0; i < RELAY_COUNT; i++) {
@@ -103,6 +99,7 @@ uint16_t api_validate_server_payload(char *encrypted) {
 
 void api_handle_server_request(char *encrypted_str) {
     uint16_t encrypted_str_len = api_validate_server_payload(encrypted_str);
+    Serial.println(encrypted_str_len);
     if (!encrypted_str_len) {
         return;
     }
@@ -115,6 +112,8 @@ void api_handle_server_request(char *encrypted_str) {
 
     uint16_t server_payload_len;
     uint8_t is_decrypt_successful = decrypt(encrypted, encrypted_len, (uint8_t *) &server_payload, &server_payload_len);
+
+    Serial.println(is_decrypt_successful);
 
     if (!is_decrypt_successful) {
         return;
@@ -164,7 +163,8 @@ void api_print_opta_payload(struct APIOptaPayload *payload) {
 void api_print_server_payload(struct APIServerPayload *payload) {
     uint8_t *payload_bytes = (uint8_t *) payload;
     for (int i = 0; i < API_SERVER_PAYLOAD_LEN; i++) {
-        // printf("%02x ", *(payload_bytes + i));
+        Serial.print(*(payload_bytes + i));
     }
+    Serial.println();
     // printf("\nAPIServerPayload > counter = %d, timestamp = %d, request = %d, extra = %d\n", payload->counter, payload->timestamp, payload->request, payload->extra);
 }
