@@ -69,7 +69,7 @@ void api_make_opta_request(enum APIOptaRequestType request_type) {
     api_send_payload_http(encrypted_payload, encrypted_payload_len);
 }
 
-uint16_t api_validate_server_payload(char *encrypted) {
+uint16_t api_validate_server_payload_len(char *encrypted) {
     uint16_t encrypted_strlen = 0;
     while (encrypted[encrypted_strlen] != 0
             && encrypted_strlen < ENCRYPTED_PAYLOAD_MAX_STR_LEN) {
@@ -90,7 +90,7 @@ uint16_t api_validate_server_payload(char *encrypted) {
     uint16_t ciphertext_len = encrypted_len - IV_LEN - HMAC_LEN;
 
     if (ciphertext_len % 16 != 0) {
-        Serial.println("Server payload discarded (ciphertext is not a multiple of 16)");
+        Serial.println("Server payload discarded (ciphertext length is not a multiple of 16)");
         return 0;
     }
 
@@ -98,9 +98,10 @@ uint16_t api_validate_server_payload(char *encrypted) {
 };
 
 void api_handle_server_request(char *encrypted_str) {
-    uint16_t encrypted_str_len = api_validate_server_payload(encrypted_str);
+    uint16_t encrypted_str_len = api_validate_server_payload_len(encrypted_str);
+
     Serial.println(encrypted_str_len);
-    if (!encrypted_str_len) {
+    if (encrypted_str_len == 0) {
         return;
     }
 
@@ -109,6 +110,12 @@ void api_handle_server_request(char *encrypted_str) {
     uint16_t encrypted_len = encrypted_str_len / 2;
 
     hex_str_to_bytes(encrypted_str, encrypted_str_len, encrypted);
+
+    for (uint16_t i = 0; i < encrypted_len; i++) {
+        if (encrypted[i] < 0x10) Serial.print("0");
+        Serial.print(encrypted[i], HEX);
+    }
+    Serial.println();
 
     uint16_t server_payload_len;
     uint8_t is_decrypt_successful = decrypt(encrypted, encrypted_len, (uint8_t *) &server_payload, &server_payload_len);

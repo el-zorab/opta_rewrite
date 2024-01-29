@@ -20,32 +20,40 @@ uint8_t decrypt(uint8_t *encrypted, uint16_t encrypted_len, uint8_t *raw, uint16
 
     for (int i = 0; i < IV_LEN; i++) {
         iv[i] = encrypted[i + iv_start];
-        Serial.print(iv[i], HEX);
-        Serial.print(" ");        
+        
+        if (iv[i] < 0x10) Serial.print("0");
+        Serial.print(iv[i], HEX);     
     }
     Serial.println();
 
     for (int i = 0; i < ciphertext_len; i++) {
         ciphertext[i] = encrypted[i + ciphertext_start];
+
+        if (ciphertext[i] < 0x10) Serial.print("0");
         Serial.print(ciphertext[i], HEX);
-        Serial.print(" ");
     }
     Serial.println();
 
     for (int i = 0; i < HMAC_LEN; i++) {
         received_hmac[i] = encrypted[i + hmac_start];
+
+        if (received_hmac[i] < 0x10) Serial.print("0");
         Serial.print(received_hmac[i], HEX);
-        Serial.print(" ");
     }
     Serial.println();
 
     hmac_sha256_wrapper(encrypted, ciphertext_end, computed_hmac, HMAC_LEN);
 
+    uint8_t hmac_is_valid = 1;
     for (int i = 0; i < HMAC_LEN; i++) {
         if (received_hmac[i] != computed_hmac[i]) {
-            Serial.println("Server payload discarded (invalid HMAC)");
-            return 0;
+            hmac_is_valid = 0;
         }
+    }
+
+    if (!hmac_is_valid) {
+        Serial.println("Server payload discarded (invalid HMAC)");
+        return 0;
     }
 
     aes_decrypt(encrypted + ciphertext_start, ciphertext_len, iv, raw, raw_len);
