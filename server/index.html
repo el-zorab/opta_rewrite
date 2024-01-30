@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 
@@ -178,30 +177,34 @@
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
         var socket = io();
-        let relay_buttons = [];
-        let interrupts_button = document.getElementById('interrupts_button');
+        let relays = [];
+        let interrupts = document.getElementById('interrupts_button');
 
         for (let i = 0; i < 12; i++) {
-            relay_buttons[i] = document.getElementById(`relay_${i}`);
-            relay_buttons[i].checked = false;
-            relay_buttons[i].addEventListener('change', () => {
-                socket.emit('relay_button_change', { relay: i, state: relay_buttons[i].checked });
+            relays[i] = document.getElementById(`relay_${i}`);
+            relays[i].checked = false;
+            relays[i].addEventListener('change', () => {
+                socket.emit('relay_server_change', {
+                    relay: i,
+                    state: relays[i].checked ? 1 : 0
+                });
             });
         }
 
-        interrupts_button.checked = false;
-        interrupts_button.addEventListener('change', () => {
-            socket.emit('interrupts_button_change', interrupts_button.checked);
+        interrupts.checked = false;
+        interrupts.addEventListener('change', () => {
+            socket.emit('interrupts_state_server_change', interrupts.checked ? 1 : 0);
         });
 
-        socket.on('update_relay_buttons', relays => {
+        socket.on('set_new_relays', new_relays => {
+            console.log(new_relays);
             for (let i = 0; i < 12; i++) {
-                relay_buttons[i].checked = relays[i] == 1 ? true : false;
+                relays[i].checked = new_relays[i] ? true : false;
             }
         });
 
-        socket.on('update_interrupts_button', state => {
-            interrupts_button.checked = state;
+        socket.on('set_new_interrupts_state', state => {
+            interrupts.checked = state ? true : false;
         });
     </script>
 </body>

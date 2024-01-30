@@ -12,7 +12,9 @@ const AES_MAX_LEN = 32;
 const HMAC_LEN    = 32;
 const ENCRYPTED_PAYLOAD_MAX_LEN = IV_LEN + AES_MAX_LEN + HMAC_LEN;
 
-const OPTA_COUNT = 3;
+export const OPTA_COUNT = 3;
+export const RELAYS_PER_OPTA = 4;
+
 const OPTA_IPS = [
     '192.168.11.177',
     '192.168.11.178',
@@ -26,7 +28,7 @@ const APIOptaRequestType = {
     UPDATE_INTERRUPTS_STATE:   2
 };
 
-const APIServerRequestType = {
+export const APIServerRequestType = {
     UPDATE_RELAYS:           0,
     UPDATE_INTERRUPTS_STATE: 1
 };
@@ -143,19 +145,15 @@ function api_create_server_payload(request, extra) {
     let payload = new APIServerPayload()
                         .set_counter(api_server_reqs_counter)
                         .set_timestamp(get_current_timestamp())
-                        .set_request(request);
-
-    if (request == APIServerRequestType.UPDATE_RELAYS) {
-        payload.set_extra(extra);
-    } else if (request == APIServerRequestType.UPDATE_INTERRUPTS_STATE) {
-        payload.set_extra(extra);
-    }
+                        .set_request(request)
+                        .set_extra(extra);
 
     return payload.get_buffer();
 }
 
 function api_send_server_request(payload_header, opta_id) {
-    exec(`curl --connect-timeout 5 -H "Payload: ${payload_header}" http://${OPTA_IPS[opta_id]}:${OPTA_PORT}/`, error => {
+    console.log('exec');
+    exec(`curl --connect-timeout 5 -H "Payload: ${payload_header}" http://192.168.11.170:${OPTA_PORT}/`, error => {
         if (error != null) {
             console.log(`cURL Error on Opta#${opta_id}`);
         } else {

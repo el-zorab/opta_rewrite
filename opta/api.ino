@@ -146,7 +146,8 @@ void api_handle_server_request(char *encrypted_str) {
     if (server_payload.request == API_SERVER_REQ_UPDATE_RELAYS) {
         uint8_t relay_states[RELAY_COUNT];
         for (int i = 0; i < RELAY_COUNT; i++) {
-            relay_states[i] = (1 << (RELAY_COUNT - i - 1) & server_payload.extra) > 0 ? 1 : 0;
+            // relay_states[i] = (1 << (RELAY_COUNT - i - 1) & server_payload.extra) > 0 ? 1 : 0;
+            relay_states[i] = (server_payload.extra >> (RELAY_COUNT - i - 1)) & 1;
         }
         set_relays_states(relay_states);
     } else if (server_payload.request == API_SERVER_REQ_UPDATE_INTERRUPTS_STATE) {
