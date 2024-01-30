@@ -1,8 +1,8 @@
 'use strict';
 
-import { exec } from 'child_process';
-import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from 'crypto';
-import fs from 'fs';
+import { exec } from 'node:child_process';
+import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import fs from 'node:fs';
 
 const AES_KEY = Buffer.from(fs.readFileSync(new URL('./aes_key.dat', import.meta.url), { encoding: 'utf-8' }), 'hex');
 const HMAC_KEY = Buffer.from(fs.readFileSync(new URL('./hmac_key.dat', import.meta.url), { encoding: 'utf-8' }), 'hex');
@@ -20,7 +20,7 @@ const OPTA_IPS = [
 ];
 const OPTA_PORT = 8088;
 
-export const APIOptaRequestType = {
+const APIOptaRequestType = {
     UPDATE_RELAYS:             0,
     UPDATE_RELAYS_BY_USER_BTN: 1,
     UPDATE_INTERRUPTS_STATE:   2
@@ -79,16 +79,16 @@ let api_server_reqs_counter = Array(OPTA_COUNT).fill(0);
 
 export function api_handle_opta_request(encrypted_str, callback) {
     if (!encrypted_str.match(/^[0-9a-f]+$/)) {
-        console.log('Opta payload discarded (not a hex string)');
-        return;
+        callback('Opta payload discarded (not a hex string)');
+        return 0;
     }
 
     let encrypted = Buffer.from(encrypted_str, 'hex');
     let encrypted_len = encrypted.length;
 
     if (encrypted_len >= ENCRYPTED_PAYLOAD_MAX_LEN) {
-        console.log('Opta payload discarded (encrypted payload length exceeds maximum value)');
-        return;
+        callback('Opta payload discarded (encrypted payload length exceeds maximum value)');
+        return 0;
     }
 
     let iv_start = 0;
@@ -99,8 +99,8 @@ export function api_handle_opta_request(encrypted_str, callback) {
     let hmac_end   = encrypted_len;
 
     if ((ciphertext_end - ciphertext_start) % 16 != 0) {
-        console.log('Opta payload discarded (ciphertext length is not a multiple of 16)');
-        return;
+        callback('Opta payload discarded (ciphertext length is not a multiple of 16)');
+        return 0;
     }
 
     let iv            = encrypted.subarray(iv_start, iv_end);
@@ -110,31 +110,33 @@ export function api_handle_opta_request(encrypted_str, callback) {
     let computed_hmac = create_hmac(Buffer.concat([iv, ciphertext]));
 
     if (!timingSafeEqual(received_hmac, computed_hmac)) {
-        console.log('Opta payload discarded (invalid HMAC)');
-        return;
+        callback('INVALID HMAC');
+        return 0;
     }
 
     let decrypted_buffer = aes_decrypt_iv(ciphertext, iv);
     let payload = new APIOptaPayload(decrypted_buffer);
 
     if (payload.counter < api_opta_reqs_counter[payload.opta_id]) {
-        console.log(`Invalid API counter on Opta#${payload.opta_id}, received ${payload.counter}, expected less than ${api_opta_reqs_counter[payload.opta_id]}`);
-        return;
+        callback(`INVALID API COUNTER Opta#${payload.opta_id}, received ${payload.counter}, expected < ${api_opta_reqs_counter[payload.opta_id]}`);
+        return 0;
     }
     
-    let timestamp_diff = Math.abs(payload.timestamp - get_current_timestamp());
-    if (timestamp_diff > API_TIMESTAMP_MAX_DIFF) {
-        console.log(`Invalid timestamp on Opta#${payload.id}, difference is ${timestamp_diff}, expected less than ${API_TIMESTAMP_MAX_DIFF}`);
-        return;
+    let current_timestamp = get_current_timestamp();
+    if (Math.abs(payload.timestamp - current_timestamp) > API_TIMESTAMP_MAX_DIFF) {
+        callback(`INVALID TIMESTAMP Opta#${payload.opta_id}, received ${payload.timestamp}, expected ${current_timestamp}±${API_TIMESTAMP_MAX_DIFF}`);
+        return 0;
     }
 
-    callback(payload.request, payload.extra);
+    api_opta_reqs_counter[payload.opta_id]++;
 
-    // if (payload.request == APIOptaRequestType.UPDATE_RELAYS || payload.request == APIOptaRequestType.UPDATE_RELAYS_BY_USER_BTN) {
-    //     sockets_update_relays(payload.extra)
-    // } else if (payload.request == APIOptaRequestType.UPDATE_INTERRUPTS_STATE) {
-    //     sockets_update_interrupts_state(payload.extra);
-    // }
+    callback(null);
+
+    if (payload.request == APIOptaRequestType.UPDATE_RELAYS || payload.request == APIOptaRequestType.UPDATE_RELAYS_BY_USER_BTN) {
+        sockets_update_relays(payload.extra)
+    } else if (payload.request == APIOptaRequestType.UPDATE_INTERRUPTS_STATE) {
+        sockets_update_interrupts_state(payload.extra);
+    }
 }
 
 function api_create_server_payload(request, extra) {
@@ -164,7 +166,6 @@ function api_send_server_request(payload_header, opta_id) {
 
 export function api_make_server_request(request, extra, opta_id) {
     let raw = api_create_server_payload(request, extra);
-    console.log(raw.toString('hex'));
 
     let iv = randomBytes(IV_LEN);
     let ciphertext = aes_encrypt_iv(raw, iv);

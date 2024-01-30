@@ -2,32 +2,44 @@
 
 import { createServer } from 'node:http';
 import express from 'express';
+import { fileURLToPath } from 'node:url';
 import { api_handle_opta_request } from './api.js';
+import { log } from './log.js';
 
 const app = express();
 const server = createServer(app);
 
+let request_id = 0;
+
 app.use('/', (req, res, next) => {
-    let date = new Date();
-    console.log(`[${date.toLocaleDateString()} ${date.toLocaleTimeString()}] Request from ${req.ip}`);
+    req.id = request_id++;
+    log(`REQUEST INCOMING from ${req.ip} with ID #${req.id}`);
     next();
 });
 
 app.get('/', (req, res) => {
-    res.sendFile(join(__dirname, 'index.html'));
+    res.sendFile(fileURLToPath(new URL('./index.html', import.meta.url)));
 });
 
 app.get('/api', (req, res) => {
     let payload = req.headers['payload'];
     if (payload != null) {
-        api_receive(payload);
-        res.sendStatus(200);
+        api_handle_opta_request(payload, error => {
+            if (error != null) {
+                log(`REQUEST #${req.id} INVALID: ${error}`);
+                res.sendStatus(401);
+            } else {
+                res.sendStatus(200);
+            }
+        });
     } else {
-        console.log(`Received API request with null header`);
+        log('Received API request with null header');
         res.sendStatus(401);
     }
 });
 
 server.listen(80, () => {
-    console.log('express listening');
+    log('express listening');
 });
+
+// api_handle_opta_request('69c4bdff8f4533e500b9d004e7f0cfcbabad44187907849416f90bd9f08bb70c0959493150b8c00f23453f4e82e6a10b79ccf5f6e57493717a796997eb2fdab8');
