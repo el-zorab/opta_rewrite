@@ -19,7 +19,7 @@ app.use('/', (req, res, next) => {
 });
 
 app.get('/', (req, res) => {
-    console.log(req.headers['payload']);
+    if (req.headers['payload'] != null) console.log(req.headers['payload']);
     res.sendFile(fileURLToPath(new URL('./index.html', import.meta.url)));
 });
 
@@ -35,7 +35,7 @@ app.get('/api', (req, res) => {
             }
         });
     } else {
-        log('Received API request with null header');
+        log(`REQUEST #${req.id} has NULL PAYLOAD HEADER`);
         res.sendStatus(401);
     }
 });
@@ -44,7 +44,7 @@ sockets_init(server);
 sockets_register();
 
 server.listen(80, () => {
-    log('express listening');
+    log('EXPRESS LISTENING');
 });
 
 // api_handle_opta_request('69c4bdff8f4533e500b9d004e7f0cfcbabad44187907849416f90bd9f08bb70c0959493150b8c00f23453f4e82e6a10b79ccf5f6e57493717a796997eb2fdab8');

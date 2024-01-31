@@ -3,6 +3,8 @@
 import { exec } from 'node:child_process';
 import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import fs from 'node:fs';
+import { log } from './log.js'
+import { OPTA_COUNT, OPTA_IPS, OPTA_PORT } from './opta.js';
 
 const AES_KEY = Buffer.from(fs.readFileSync(new URL('./aes_key.dat', import.meta.url), { encoding: 'utf-8' }), 'hex');
 const HMAC_KEY = Buffer.from(fs.readFileSync(new URL('./hmac_key.dat', import.meta.url), { encoding: 'utf-8' }), 'hex');
@@ -11,16 +13,6 @@ const IV_LEN      = 16;
 const AES_MAX_LEN = 32;
 const HMAC_LEN    = 32;
 const ENCRYPTED_PAYLOAD_MAX_LEN = IV_LEN + AES_MAX_LEN + HMAC_LEN;
-
-export const OPTA_COUNT = 3;
-export const RELAYS_PER_OPTA = 4;
-
-const OPTA_IPS = [
-    '192.168.11.177',
-    '192.168.11.178',
-    '192.168.11.179'
-];
-const OPTA_PORT = 8088;
 
 const APIOptaRequestType = {
     UPDATE_RELAYS:             0,
@@ -79,9 +71,9 @@ class APIServerPayload {
 let api_opta_reqs_counter   = Array(OPTA_COUNT).fill(0);
 let api_server_reqs_counter = Array(OPTA_COUNT).fill(0);
 
-export function api_handle_opta_request(encrypted_str, callback) {
+export function api_handle_opta_request(encrypted_str, error_callback) {
     if (!encrypted_str.match(/^[0-9a-f]+$/)) {
-        callback('Opta payload discarded (not a hex string)');
+        error_callback('PAYLOAD IS NOT A HEX STRING');
         return 0;
     }
 
@@ -89,7 +81,7 @@ export function api_handle_opta_request(encrypted_str, callback) {
     let encrypted_len = encrypted.length;
 
     if (encrypted_len >= ENCRYPTED_PAYLOAD_MAX_LEN) {
-        callback('Opta payload discarded (encrypted payload length exceeds maximum value)');
+        error_callback('PAYLOAD EXCEEDS MAXIMUM LENGTH');
         return 0;
     }
 
@@ -101,7 +93,7 @@ export function api_handle_opta_request(encrypted_str, callback) {
     let hmac_end   = encrypted_len;
 
     if ((ciphertext_end - ciphertext_start) % 16 != 0) {
-        callback('Opta payload discarded (ciphertext length is not a multiple of 16)');
+        error_callback('CIPHERTEXT LENGTH ISN\'T MULTIPLE OF 16');
         return 0;
     }
 
@@ -112,7 +104,7 @@ export function api_handle_opta_request(encrypted_str, callback) {
     let computed_hmac = create_hmac(Buffer.concat([iv, ciphertext]));
 
     if (!timingSafeEqual(received_hmac, computed_hmac)) {
-        callback('INVALID HMAC');
+        error_callback('INVALID HMAC');
         return 0;
     }
 
@@ -120,24 +112,24 @@ export function api_handle_opta_request(encrypted_str, callback) {
     let payload = new APIOptaPayload(decrypted_buffer);
 
     if (payload.counter < api_opta_reqs_counter[payload.opta_id]) {
-        callback(`INVALID API COUNTER Opta#${payload.opta_id}, received ${payload.counter}, expected < ${api_opta_reqs_counter[payload.opta_id]}`);
+        error_callback(`INVALID API COUNTER OPTA#${payload.opta_id}, received ${payload.counter}, expected < ${api_opta_reqs_counter[payload.opta_id]}`);
         return 0;
     }
     
     let current_timestamp = get_current_timestamp();
     if (Math.abs(payload.timestamp - current_timestamp) > API_TIMESTAMP_MAX_DIFF) {
-        callback(`INVALID TIMESTAMP Opta#${payload.opta_id}, received ${payload.timestamp}, expected ${current_timestamp}±${API_TIMESTAMP_MAX_DIFF}`);
+        error_callback(`INVALID TIMESTAMP OPTA#${payload.opta_id}, received ${payload.timestamp}, expected ${current_timestamp}±${API_TIMESTAMP_MAX_DIFF}`);
         return 0;
     }
 
     api_opta_reqs_counter[payload.opta_id]++;
 
-    callback(null);
+    error_callback(null);
 
     if (payload.request == APIOptaRequestType.UPDATE_RELAYS || payload.request == APIOptaRequestType.UPDATE_RELAYS_BY_USER_BTN) {
-        sockets_update_relays(payload.extra)
+        sockets_set_opta_relays(payload.opta_id, payload.extra);
     } else if (payload.request == APIOptaRequestType.UPDATE_INTERRUPTS_STATE) {
-        sockets_update_interrupts_state(payload.extra);
+        sockets_set_interrupts_state(payload.extra);
     }
 }
 
@@ -152,10 +144,9 @@ function api_create_server_payload(request, extra) {
 }
 
 function api_send_server_request(payload_header, opta_id) {
-    console.log('exec');
-    exec(`curl --connect-timeout 5 -H "Payload: ${payload_header}" http://192.168.11.170:${OPTA_PORT}/`, error => {
+    exec(`curl --connect-timeout 5 -H "Payload: ${payload_header}" http://${OPTA_IPS[opta_id]}:${OPTA_PORT}/`, error => {
         if (error != null) {
-            console.log(`cURL Error on Opta#${opta_id}`);
+            log(`CURL ERROR on OPTA#${opta_id}`);
         } else {
             api_server_reqs_counter[opta_id]++;
         }

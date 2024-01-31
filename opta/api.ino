@@ -73,12 +73,20 @@ uint16_t api_validate_server_payload_len(char *encrypted) {
     uint16_t encrypted_strlen = 0;
     while (encrypted[encrypted_strlen] != 0
             && encrypted_strlen < ENCRYPTED_PAYLOAD_MAX_STR_LEN) {
-        encrypted_strlen++;        
+        encrypted_strlen++;
     }
 
     if (encrypted_strlen == ENCRYPTED_PAYLOAD_MAX_STR_LEN) {
         Serial.println("Server payload discarded (encrypted payload length exceeds maximum value");
         return 0;
+    }
+
+    for (uint16_t i = 0; i < encrypted_strlen; i++) {
+        char c = encrypted[i];
+        if (('0' > c || c > '9') && ('a' > c || c > 'f')) {
+            Serial.println("Server payload discarded (encrypted payload is not a hex string)");
+            return 0;
+        }
     }
 
     if (encrypted_strlen % 2 != 0) {

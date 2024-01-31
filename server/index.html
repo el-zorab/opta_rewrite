@@ -169,7 +169,7 @@
     <div class="container">
         <p>Hardware interrupts</p>
         <label class="switch">
-            <input type="checkbox" id="interrupts_button">
+            <input type="checkbox" id="interrupts">
             <span class="slider"></span>
         </label>
     </div>
@@ -178,7 +178,22 @@
     <script>
         var socket = io();
         let relays = [];
-        let interrupts = document.getElementById('interrupts_button');
+        let interrupts = document.getElementById('interrupts');
+
+        let relay_names = [
+            "Lumini public lateral",
+            "Neoane public galbene",
+            "Lumini galbene",
+            "Neoane sus",
+            "Scena",
+            "Scena bun",
+            "Prize boxe",
+            "Spate scena priza",
+            "Priza buza balcon",
+            "Neconectat",
+            "?",
+            "Lumini balcon"
+        ]
 
         for (let i = 0; i < 12; i++) {
             relays[i] = document.getElementById(`relay_${i}`);
@@ -196,14 +211,14 @@
             socket.emit('interrupts_state_server_change', interrupts.checked ? 1 : 0);
         });
 
-        socket.on('set_new_relays', new_relays => {
+        socket.on('set_relays', new_relays => {
             console.log(new_relays);
             for (let i = 0; i < 12; i++) {
                 relays[i].checked = new_relays[i] ? true : false;
             }
         });
 
-        socket.on('set_new_interrupts_state', state => {
+        socket.on('set_interrupts_state', state => {
             interrupts.checked = state ? true : false;
         });
     </script>
